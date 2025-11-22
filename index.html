@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Büyük Nehir Macerası</title>
     <style>
+        * {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -22,12 +28,29 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.5);
             border-radius: 10px;
             overflow: hidden;
+            max-width: 100vw;
+            max-height: 100vh;
         }
 
         canvas {
             display: block;
             background: linear-gradient(to bottom, #3498db, #2980b9);
             cursor: none;
+            touch-action: none;
+            width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 600px) {
+            #gameContainer {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+            canvas {
+                width: 100%;
+                height: 100%;
+            }
         }
 
         #uiPanel {
@@ -73,7 +96,7 @@
 <body>
 
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <canvas id="gameCanvas"></canvas>
         <div id="uiPanel">Skor: <span id="score">0</span></div>
 
         <div id="gameOverScreen">
@@ -90,6 +113,22 @@
         const scoreEl = document.getElementById('score');
         const finalScoreEl = document.getElementById('finalScore');
         const gameOverScreen = document.getElementById('gameOverScreen');
+
+        // Canvas boyutlandırması
+        function resizeCanvas() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+
+            if (isPortrait) {
+                canvas.width = Math.min(400, window.innerWidth);
+                canvas.height = 600;
+            } else {
+                canvas.width = 400;
+                canvas.height = Math.min(600, window.innerHeight);
+            }
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
         let gameRunning = false;
         let score = 0;
@@ -114,8 +153,16 @@
         let rightPressed = false;
         let leftPressed = false;
 
+        // Touch kontrol değişkenleri
+        let touchStartX = 0;
+        let touchCurrentX = 0;
+        let isTouching = false;
+
         document.addEventListener('keydown', keyDownHandler);
         document.addEventListener('keyup', keyUpHandler);
+        canvas.addEventListener('touchstart', touchStartHandler, false);
+        canvas.addEventListener('touchmove', touchMoveHandler, false);
+        canvas.addEventListener('touchend', touchEndHandler, false);
 
         function keyDownHandler(e) {
             if(e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
@@ -125,6 +172,39 @@
         function keyUpHandler(e) {
             if(e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
             else if(e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+        }
+
+        function touchStartHandler(e) {
+            e.preventDefault();
+            isTouching = true;
+            touchStartX = e.touches[0].clientX;
+        }
+
+        function touchMoveHandler(e) {
+            e.preventDefault();
+            if (!isTouching) return;
+
+            touchCurrentX = e.touches[0].clientX;
+            const diff = touchCurrentX - touchStartX;
+
+            // Dokunma yönüne göre hareketi belirle
+            if (diff < -10) {
+                leftPressed = true;
+                rightPressed = false;
+            } else if (diff > 10) {
+                rightPressed = true;
+                leftPressed = false;
+            } else {
+                leftPressed = false;
+                rightPressed = false;
+            }
+        }
+
+        function touchEndHandler(e) {
+            e.preventDefault();
+            isTouching = false;
+            leftPressed = false;
+            rightPressed = false;
         }
 
         function drawPlayer() {
@@ -247,6 +327,7 @@
             frameCount = 0;
             obstacles = [];
             player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 100;
             gameOverScreen.style.display = 'none';
             scoreEl.innerText = '0';
         }
