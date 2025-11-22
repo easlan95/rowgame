@@ -147,7 +147,7 @@
         };
 
         let obstacles = [];
-        let obstacleSpawnRate = 90;
+        let obstacleSpawnRate = 70;
         let frameCount = 0;
 
         let rightPressed = false;
@@ -209,50 +209,155 @@
 
         function drawPlayer() {
             ctx.save();
-            ctx.fillStyle = player.color;
+
+            const centerX = player.x + player.width / 2;
+            const centerY = player.y;
+
+            // Tekne gövdesi - gerçekçi kayık (Filippi tarzı)
+            ctx.fillStyle = '#f5f5f5';
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(player.x, player.y);
-            ctx.lineTo(player.x + player.width, player.y);
-            ctx.lineTo(player.x + player.width / 2, player.y + player.height);
+            // Gövde şekli - uçlu ve dar (filippi boat stili)
+            ctx.moveTo(centerX - 12, centerY + 10); // sol yan
+            ctx.bezierCurveTo(centerX - 15, centerY + 15, centerX - 14, centerY + 45, centerX - 8, centerY + 60); // sol arka
+            ctx.lineTo(centerX + 8, centerY + 60); // arka
+            ctx.bezierCurveTo(centerX + 14, centerY + 45, centerX + 15, centerY + 15, centerX + 12, centerY + 10); // sağ arka
+            ctx.lineTo(centerX + 6, centerY); // sağ ön
+            ctx.lineTo(centerX - 6, centerY); // sol ön (uçlu başlangıç)
             ctx.closePath();
             ctx.fill();
+            ctx.stroke();
 
-            ctx.fillStyle = '#f1c40f';
+            // Teknenin içi - su hattı
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(player.x + player.width / 2, player.y + 20, 10, 0, Math.PI * 2);
+            ctx.moveTo(centerX - 10, centerY + 25);
+            ctx.bezierCurveTo(centerX - 12, centerY + 35, centerX - 12, centerY + 50, centerX - 6, centerY + 58);
+            ctx.moveTo(centerX + 10, centerY + 25);
+            ctx.bezierCurveTo(centerX + 12, centerY + 35, centerX + 12, centerY + 50, centerX + 6, centerY + 58);
+            ctx.stroke();
+
+            // Sporcu - kafası
+            ctx.fillStyle = '#e8b4a8';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 18, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Sporcu - gövdesi
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY + 24);
+            ctx.lineTo(centerX, centerY + 40);
+            ctx.stroke();
+
+            // Kürekler - animasyonlu
+            ctx.strokeStyle = '#8b5a3c';
+            ctx.lineWidth = 3;
+            player.rowingState = (player.rowingState + 1) % 20;
+
+            // Sol kürek
+            let leftOarX = -22;
+            let rightOarX = 22;
+            let oarAngle = (player.rowingState < 10) ?
+                (player.rowingState * 9) : // 0 to 90 degrees
+                (180 - player.rowingState * 9); // 90 to 0 degrees
+
+            let radians = (oarAngle * Math.PI) / 180;
+            let oarLength = 25;
+
+            // Sol kürek
+            ctx.beginPath();
+            ctx.moveTo(centerX - 8, centerY + 32);
+            ctx.lineTo(
+                centerX - 8 + Math.cos(radians + Math.PI) * oarLength,
+                centerY + 32 + Math.sin(radians + Math.PI) * oarLength
+            );
+            ctx.stroke();
+
+            // Sağ kürek
+            ctx.beginPath();
+            ctx.moveTo(centerX + 8, centerY + 32);
+            ctx.lineTo(
+                centerX + 8 + Math.cos(radians) * oarLength,
+                centerY + 32 + Math.sin(radians) * oarLength
+            );
+            ctx.stroke();
+
+            // Kürek başları - oval paddle
+            ctx.fillStyle = '#a0522d';
+            ctx.beginPath();
+            ctx.ellipse(
+                centerX - 8 + Math.cos(radians + Math.PI) * oarLength,
+                centerY + 32 + Math.sin(radians + Math.PI) * oarLength,
+                4, 7, radians, 0, Math.PI * 2
+            );
             ctx.fill();
 
-            ctx.strokeStyle = '#7f5a3c';
-            ctx.lineWidth = 4;
-            player.rowingState = (player.rowingState + 1) % 20;
-            let rowOffset = (player.rowingState < 10) ? 5 : -5;
-
             ctx.beginPath();
-            ctx.moveTo(player.x + 5, player.y + 30);
-            ctx.lineTo(player.x - 20, player.y + 40 + rowOffset);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(player.x + player.width - 5, player.y + 30);
-            ctx.lineTo(player.x + player.width + 20, player.y + 40 + rowOffset);
-            ctx.stroke();
+            ctx.ellipse(
+                centerX + 8 + Math.cos(radians) * oarLength,
+                centerY + 32 + Math.sin(radians) * oarLength,
+                4, 7, radians, 0, Math.PI * 2
+            );
+            ctx.fill();
 
             ctx.restore();
         }
 
         function drawObstacles() {
             obstacles.forEach(obs => {
-                ctx.fillStyle = obs.type === 'rock' ? '#7f8c8d' : '#6d4c41';
-                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                if (obs.type === 'rock') {
+                    // Kayalar - daha gerçekçi görünüm
+                    ctx.fillStyle = '#7f8c8d';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
 
-                if(obs.type !== 'rock') {
-                     ctx.strokeStyle = '#4e342e';
-                     ctx.lineWidth = 2;
-                     ctx.beginPath();
-                     ctx.moveTo(obs.x, obs.y + 5);
-                     ctx.lineTo(obs.x + obs.width, obs.y + 5);
-                     ctx.moveTo(obs.x, obs.y + obs.height - 5);
-                     ctx.lineTo(obs.x + obs.width, obs.y + obs.height - 5);
-                     ctx.stroke();
+                    // Su etkileri
+                    ctx.strokeStyle = 'rgba(52, 152, 219, 0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, obs.y + obs.height + 2);
+                    ctx.lineTo(obs.x + obs.width, obs.y + obs.height + 2);
+                    ctx.stroke();
+
+                    // Gölgeler
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                    ctx.fillRect(obs.x, obs.y + obs.height * 0.7, obs.width, obs.height * 0.3);
+                } else {
+                    // Kütükler - daha gerçekçi
+                    ctx.fillStyle = '#6d4c41';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+                    // Kütük desenleri
+                    ctx.strokeStyle = '#4e342e';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, obs.y + 5);
+                    ctx.lineTo(obs.x + obs.width, obs.y + 5);
+                    ctx.moveTo(obs.x, obs.y + obs.height - 5);
+                    ctx.lineTo(obs.x + obs.width, obs.y + obs.height - 5);
+                    ctx.stroke();
+
+                    // Su etkileri - köpük
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, obs.y + obs.height + 2);
+                    ctx.lineTo(obs.x + obs.width, obs.y + obs.height + 2);
+                    ctx.stroke();
+
+                    // Parlaklık
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x + 3, obs.y + 2);
+                    ctx.lineTo(obs.x + obs.width - 3, obs.y + 2);
+                    ctx.stroke();
                 }
             });
         }
@@ -267,8 +372,10 @@
                 y: -size,
                 width: obstacleWidth,
                 height: type === 'rock' ? size : size / 2,
-                speed: gameSpeed * (Math.random() * 0.5 + 0.8),
-                type: type
+                speed: gameSpeed * (Math.random() * 0.8 + 1.2),
+                type: type,
+                wobble: Math.random() * 0.3 - 0.15,
+                wobbleAmount: 0
             };
             obstacles.push(obstacle);
         }
@@ -282,6 +389,13 @@
 
             obstacles.forEach(obs => {
                 obs.y += obs.speed;
+                // Engellere gerçekçi yanal hareket ekle (su akışı simülasyonu)
+                obs.wobbleAmount += 0.05;
+                obs.x += Math.sin(obs.wobbleAmount) * obs.wobble;
+
+                // Canvas sınırlarını aşma kontrolü
+                if (obs.x < 0) obs.x = 0;
+                if (obs.x + obs.width > canvas.width) obs.x = canvas.width - obs.width;
             });
 
             obstacles = obstacles.filter(obs => obs.y < canvas.height);
@@ -307,8 +421,8 @@
              scoreEl.innerText = Math.floor(score);
 
              if (frameCount % 300 === 0) {
-                 gameSpeed += 0.5;
-                 obstacleSpawnRate = Math.max(30, obstacleSpawnRate - 5);
+                 gameSpeed += 0.7;
+                 obstacleSpawnRate = Math.max(25, obstacleSpawnRate - 6);
              }
         }
 
@@ -323,7 +437,7 @@
             gameRunning = true;
             score = 0;
             gameSpeed = 3;
-            obstacleSpawnRate = 90;
+            obstacleSpawnRate = 70;
             frameCount = 0;
             obstacles = [];
             player.x = canvas.width / 2 - player.width / 2;
